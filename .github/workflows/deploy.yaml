@@ -1,0 +1,55 @@
+name : deploy
+on :
+    push:
+        branches:
+         - pop
+    workflow_dispatch:
+        
+permissions:
+    id-token: write
+    contents: read
+    issues: write
+    pull-requests: write
+    security-events: write
+    pages: read
+concurrency:
+    group: '${{ github.workflow }}}'
+    cancel-in-progress: false
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+         - name : Checkout Code
+           uses: actions/checkout@v3
+         - name: Run Custom Action
+           uses: ./github/actions/my-custom-action
+           with:
+                exampleInput: 'Hello World'
+    plan-all:
+        name: terraform-plan
+        secrets: inherit
+        uses: ./.github/workflows/action.yaml   
+        if: contains(github.event_name, 'push')
+        strategy: 
+            max-parallel: 1
+            matrix:
+                environment:
+                    - working_directory: 'myaws/us-east-1'
+                      account:
+                      region: 'us-east-1'
+                      environment: dev 
+        with:
+            working_directory: "${{ matrix.environment.working_directory }}"
+            account: "${{ matrix.environment.account }}"
+            region: "${{ matrix.environment.region }}"
+            environment: "${{ matrix.environment.environment }}"
+            github-sha: "${{ github.sha }}"
+            github-run-id: "${{ github.run_id }}"
+            github-run-number: "${{ github.run_number }}"
+            job-index: "${{ strategy.job-index}}"
+            job-type: "plan"
+
+
+
+    
