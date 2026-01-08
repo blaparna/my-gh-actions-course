@@ -1,1 +1,74 @@
+name: action template
+on: 
+    workflow_call:
+        inputs:
+            working_directory:
+                required: true
+                type: string
+            account:
+                required: true
+                type: string
+            region:
+                required: true
+                type: string
+            environment:
+                required: true
+                type: string
+            github-sha: 
+                required: true
+                type: string
+            github-run-id:
+                required: true
+                type: string
+            github-run-number:
+                required: true  
+                type: string
+            job-index:
+                required: true  
+                type: string
+            job-type:
+                required: true  
+                type: string
 
+#artifactory-token
+env:
+    TF_Artifactory_Token: ${{ secrets.TERRAFORM_REGISTRY_TOKEN }}
+
+jobs:
+    plan:
+        name: tf-plan
+        runs-on: ubuntu-latest
+        environment: ${{ inputs.environment }}
+        if: ${{ inputs.job-type == 'plan'}}
+
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v5
+            with: 
+                ref: '${{ inputs.github-sha }}'
+          - name: debug matrix values
+            run: |
+                echo "Account : ${{ inputs.account }}"
+                echo "region : ${{ inputs.region }}"
+                echo "Directory  : ${{ inputs.working_directory }}"
+          - name: validate working directory
+            run: |
+                echo "setting working directory"
+                cd ${{ inputs.working_directory }}
+                pwd
+                ls -laRt
+          - name: Assume AWS Role
+            uses: aws-actions/configure-aws-credentials@v5
+            with:
+                role-to-assume: arn:aws:iam::${{ inputs.account }}:role/githuboidc
+                aws-region: ${{ inputs.region }}
+                audience: sts.amazonaws.com
+          - name: Read Destroy Flag
+            id: read_destroy_flag
+            run: | 
+                DESTROY_FLAG_PATH = ${{ inputs.working_directory}}/destroy_flag.txt
+
+                
+
+
+            
